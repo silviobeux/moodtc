@@ -22,6 +22,7 @@ public class TreeTaggerUtils {
 	private static HashMap<String, String> correspondences = new HashMap<>();
 
 	public static void treeTagConfig(Language textLanguage) {
+		/*
 		String currentJarPath = "";
 		try {
 			currentJarPath = TreeTaggerUtils.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath();
@@ -30,7 +31,8 @@ public class TreeTaggerUtils {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
-		String convFilename = currentJarPath + "/conversions/";
+		*/
+		String convFilename = "conversions/";
 		switch (textLanguage) {
 		case EN:
 			convFilename += "en.txt";
@@ -62,7 +64,7 @@ public class TreeTaggerUtils {
 			e.printStackTrace();
 		} 
 		// TreeTagger Setting
-		System.setProperty("treetagger.home", currentJarPath + "/../treetagger/");
+		System.setProperty("treetagger.home", "treetagger/");
 	}
 
 	public static ArrayList<TagObject> tagToken(Language textLanguage,
