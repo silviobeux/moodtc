@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+  <classpathentry kind="src" path="src/test/java" output="target/test-classes" including="**/*.java"/>
+  <classpathentry kind="src" path="src/test/resources" output="target/test-classes" excluding="**/*.java"/>
+  <classpathentry kind="src" path="src/main/java" including="**/*.java"/>
+  <classpathentry kind="src" path="src/main/resources" excluding="**/*.java"/>
+  <classpathentry kind="output" path="target/classes"/>
+  <classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+  <classpathentry kind="var" path="M2_REPO/com/cybozu/labs/langdetect/1.1-20120112/langdetect-1.1-20120112.jar" sourcepath="M2_REPO/com/cybozu/labs/langdetect/1.1-20120112/langdetect-1.1-20120112-sources.jar">
+    <attributes>
+      <attribute value="jar:file:/home/silvio/.m2/repository/com/cybozu/labs/langdetect/1.1-20120112/langdetect-1.1-20120112-javadoc.jar!/" name="javadoc_location"/>
+    </attributes>
+  </classpathentry>
+  <classpathentry kind="var" path="M2_REPO/net/arnx/jsonic/1.2.7/jsonic-1.2.7.jar" sourcepath="M2_REPO/net/arnx/jsonic/1.2.7/jsonic-1.2.7-sources.jar">
+    <attributes>
+      <attribute value="jar:file:/home/silvio/.m2/repository/net/arnx/jsonic/1.2.7/jsonic-1.2.7-javadoc.jar!/" name="javadoc_location"/>
+    </attributes>
+  </classpathentry>
+  <classpathentry kind="var" path="M2_REPO/it/uniroma1/lcl/jlt/1.0.0/jlt-1.0.0.jar"/>
+  <classpathentry kind="var" path="M2_REPO/it/uniroma1/lcl/babelnet/2.5.1/babelnet-2.5.1.jar"/>
+  <classpathentry kind="var" path="M2_REPO/commons-io/commons-io/2.0.1/commons-io-2.0.1.jar"/>
+  <classpathentry kind="var" path="M2_REPO/it/unige/dibris/ADM/1.0.0/ADM-1.0.0.jar"/>
+  <classpathentry kind="var" path="M2_REPO/com/hp/hpl/jena/jena/2.6.3/jena-2.6.3.jar" sourcepath="M2_REPO/com/hp/hpl/jena/jena/2.6.3/jena-2.6.3-sources.jar">
+    <attributes>
+      <attribute value="jar:file:/home/silvio/.m2/repository/com/hp/hpl/jena/jena/2.6.3/jena-2.6.3-javadoc.jar!/" name="javadoc_location"/>
+    </attributes>
+  </classpathentry>
+  <classpathentry kind="var" path="M2_REPO/com/hp/hpl/jena/iri/0.8/iri-0.8.jar" sourcepath="M2_REPO/com/hp/hpl/jena/iri/0.8/iri-0.8-sources.jar">
+    <attributes>
+      <attribute value="jar:file:/home/silvio/.m2/repository/com/hp/hpl/jena/iri/0.8/iri-0.8-javadoc.jar!/" name="javadoc_location"/>
+    </attributes>
+  </classpathentry>
+  <classpathentry kind="var" path="M2_REPO/com/ibm/icu/icu4j/3.4.4/icu4j-3.4.4.jar" sourcepath="M2_REPO/com/ibm/icu/icu4j/3.4.4/icu4j-3.4.4-sources.jar"/>
+  <classpathentry kind="var" path="M2_REPO/com/hp/hpl/jena/iri/0.8/iri-0.8-sources.jar"/>
+  <classpathentry kind="var" path="M2_REPO/xerces/xercesImpl/2.11.0/xercesImpl-2.11.0.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/slf4j/slf4j-api/1.6.4/slf4j-api-1.6.4.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/slf4j/slf4j-log4j12/1.6.4/slf4j-log4j12-1.6.4.jar"/>
+  <classpathentry kind="var" path="M2_REPO/log4j/log4j/1.2.14/log4j-1.2.14.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/annolab/tt4j/org.annolab.tt4j/1.1.1/org.annolab.tt4j-1.1.1.jar" sourcepath="M2_REPO/org/annolab/tt4j/org.annolab.tt4j/1.1.1/org.annolab.tt4j-1.1.1-sources.jar">
+    <attributes>
+      <attribute value="jar:file:/home/silvio/.m2/repository/org/annolab/tt4j/org.annolab.tt4j/1.1.1/org.annolab.tt4j-1.1.1-javadoc.jar!/" name="javadoc_location"/>
+    </attributes>
+  </classpathentry>
+  <classpathentry kind="var" path="M2_REPO/com/jtattoo/JTattoo/1.6.7/JTattoo-1.6.7.jar" sourcepath="M2_REPO/com/jtattoo/JTattoo/1.6.7/JTattoo-1.6.7-sources.jar">
+    <attributes>
+      <attribute value="jar:file:/home/silvio/.m2/repository/com/jtattoo/JTattoo/1.6.7/JTattoo-1.6.7-javadoc.jar!/" name="javadoc_location"/>
+    </attributes>
+  </classpathentry>
+  <classpathentry kind="var" path="M2_REPO/net/sourceforge/collections/collections-generic/4.01/collections-generic-4.01.jar"/>
+  <classpathentry kind="var" path="M2_REPO/commons-beanutils/commons-beanutils/1.9.2/commons-beanutils-1.9.2.jar"/>
+  <classpathentry kind="var" path="M2_REPO/commons-logging/commons-logging/1.1.1/commons-logging-1.1.1.jar"/>
+  <classpathentry kind="var" path="M2_REPO/commons-collections/commons-collections/3.2.1/commons-collections-3.2.1.jar"/>
+  <classpathentry kind="var" path="M2_REPO/commons-codec/commons-codec/1.4/commons-codec-1.4.jar"/>
+  <classpathentry kind="var" path="M2_REPO/commons-configuration/commons-configuration/1.5/commons-configuration-1.5.jar"/>
+  <classpathentry kind="var" path="M2_REPO/commons-lang/commons-lang/2.4/commons-lang-2.4.jar"/>
+  <classpathentry kind="var" path="M2_REPO/commons-digester/commons-digester/1.8/commons-digester-1.8.jar"/>
+  <classpathentry kind="var" path="M2_REPO/commons-beanutils/commons-beanutils-core/1.7.0/commons-beanutils-core-1.7.0.jar"/>
+  <classpathentry kind="var" path="M2_REPO/commons-httpclient/commons-httpclient/3.1/commons-httpclient-3.1.jar"/>
+  <classpathentry kind="var" path="M2_REPO/com/google/collections/google-collections/0.8/google-collections-0.8.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/apache/httpcomponents/httpclient/4.2.3/httpclient-4.2.3.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/apache/httpcomponents/httpcore/4.2.2/httpcore-4.2.2.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/itadaki/jbzip/0.9.1/jbzip-0.9.1.jar"/>
+  <classpathentry kind="var" path="M2_REPO/com/sleepycat/je/4.1.6/je-4.1.6.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/apache/jena/jena-arq/2.11.0/jena-arq-2.11.0.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/apache/jena/jena-core/2.11.0/jena-core-2.11.0.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/apache/jena/jena-iri/1.0.0/jena-iri-1.0.0.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/slf4j/jcl-over-slf4j/1.6.4/jcl-over-slf4j-1.6.4.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/apache/jena/jena-sdb/1.4.0/jena-sdb-1.4.0.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/apache/jena/jena-tdb/1.0.0/jena-tdb-1.0.0.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/jgrapht/jgrapht-jdk1.5/0.7.3/jgrapht-jdk1.5-0.7.3.jar"/>
+  <classpathentry kind="var" path="M2_REPO/net/sf/jung/jung-algorithms/2.0.1/jung-algorithms-2.0.1.jar"/>
+  <classpathentry kind="var" path="M2_REPO/net/sf/jung/jung-api/2.0.1/jung-api-2.0.1.jar"/>
+  <classpathentry kind="var" path="M2_REPO/colt/colt/1.2.0/colt-1.2.0.jar"/>
+  <classpathentry kind="var" path="M2_REPO/concurrent/concurrent/1.3.4/concurrent-1.3.4.jar"/>
+  <classpathentry kind="var" path="M2_REPO/net/sf/jung/jung-graph-impl/2.0.1/jung-graph-impl-2.0.1.jar"/>
+  <classpathentry kind="var" path="M2_REPO/edu/mit/jwi/2.1.4/jwi-2.1.4.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/apache/lucene/lucene-core/2.9.1/lucene-core-2.9.1.jar"/>
+  <classpathentry kind="var" path="M2_REPO/mysql/mysql-connector-java/5.1.12/mysql-connector-java-5.1.12.jar"/>
+  <classpathentry kind="var" path="M2_REPO/it/uniroma1/lcl/omegawiki/2/omegawiki-2.jar"/>
+  <classpathentry kind="var" path="M2_REPO/net/sourceforge/owlapi/owlapi-distribution/3.4.8/owlapi-distribution-3.4.8.jar"/>
+  <classpathentry kind="var" path="M2_REPO/net/sourceforge/owlapi/owlapi-apibinding/3.4.8/owlapi-apibinding-3.4.8.jar"/>
+  <classpathentry kind="var" path="M2_REPO/net/sourceforge/owlapi/owlapi-api/3.4.8/owlapi-api-3.4.8.jar"/>
+  <classpathentry kind="var" path="M2_REPO/net/sourceforge/owlapi/owlapi-impl/3.4.8/owlapi-impl-3.4.8.jar"/>
+  <classpathentry kind="var" path="M2_REPO/net/sourceforge/owlapi/owlapi-parsers/3.4.8/owlapi-parsers-3.4.8.jar"/>
+  <classpathentry kind="var" path="M2_REPO/net/sourceforge/owlapi/owlapi-tools/3.4.8/owlapi-tools-3.4.8.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/apache/felix/org.osgi.core/1.4.0/org.osgi.core-1.4.0.jar"/>
+  <classpathentry kind="var" path="M2_REPO/xml-apis/xml-apis/1.4.01/xml-apis-1.4.01.jar"/>
+</classpath>

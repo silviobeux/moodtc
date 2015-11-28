@@ -1,0 +1,10 @@
+################################################
+# DIRECTORIES REFERENCED IN babelnet.properties
+################################################
+
+# TO BE SET: the directory where the babelnet files are
+#
+# example:
+# babelnet.dir=/media/silvio/62B84B95B84B671F/Documents and Settings/Gentlecook/Desktop/BabelNet-2.5.1
+#
+# babelnet.dir=PUT_BABELNET_DIR 

@@ -1,0 +1,15 @@
+adj a
+adv r
+nam n
+nom n
+ver:cond v
+ver:futu v
+ver:impe v
+ver:impf v
+ver:infi v
+ver:pper v
+ver:ppre v
+ver:pres v
+ver:simp v
+ver:subi v
+ver:subp v

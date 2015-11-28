@@ -1,0 +1,15 @@
+fw n
+jj a
+jjr a
+jjs a
+nn n
+nns n
+rb r
+rbr r
+rbs r
+vb v
+vbd v
+vbg v
+vbn v
+vbp v
+vbz v
