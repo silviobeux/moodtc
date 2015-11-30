@@ -1,5 +1,7 @@
 package it.unige.dibris.moodtc;
 
+import it.unige.dibris.adm.ClassifierObject;
+import it.unige.dibris.adm.TCOutput;
 import it.unige.dibris.moodtc.utils.JenaUtils;
 import it.unige.dibris.moodtc.utils.TCUtils;
 import it.unige.dibris.moodtc.utils.TreeTaggerUtils;
@@ -15,9 +17,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import adm.ClassifierObject;
-import adm.TCOutput;
-
 import com.hp.hpl.jena.ontology.OntClass;
 import com.hp.hpl.jena.util.FileManager;
 import com.hp.hpl.jena.util.iterator.ExtendedIterator;
@@ -28,9 +27,8 @@ public class TC {
 	private Language ontLang = Language.EN;
 	private String textFileName = null;
 	private String ontFileName = null;
-	// should be loaded from a configuration file
-	private Language supportedLanguages[] = new Language[] { Language.EN,
-			Language.IT, Language.ES, Language.FR, Language.DE };
+
+	private Language supportedLanguages[] = TCUtils.extractSupportedLanguages();
 
 	public TC() {
 		JenaUtils.jenaConfig();

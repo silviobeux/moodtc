@@ -1,5 +1,7 @@
 package it.unige.dibris.moodtc.utils;
 
+import it.uniroma1.lcl.jlt.util.Language;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
@@ -23,5 +25,20 @@ public class TCUtils {
 			e.printStackTrace();
 		}
 		return words;
+	}
+	
+	public static Language[] extractSupportedLanguages(){
+		String currentJarPath = "";
+		//File jarPath=new File(TreeTaggerUtils.class.getProtectionDomain().getCodeSource().getLocation().getPath());
+		//currentJarPath=jarPath.getParentFile().getAbsolutePath() + "/";
+		File conversionFolder = new File(currentJarPath + "conversions/");
+		File[] listOfFiles = conversionFolder.listFiles();	
+		Language[] supportedLanguages = new Language[listOfFiles.length];
+		for (int i = 0; i < listOfFiles.length; i++) {
+		    if (listOfFiles[i].isFile()) {
+		    	supportedLanguages[i] = Language.valueOf(listOfFiles[i].getName().substring(0, 2).toUpperCase());
+		    }
+		}
+		return supportedLanguages;
 	}
 }

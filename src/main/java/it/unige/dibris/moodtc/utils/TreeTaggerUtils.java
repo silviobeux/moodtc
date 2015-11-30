@@ -6,7 +6,6 @@ import it.uniroma1.lcl.jlt.util.Language;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Scanner;
@@ -22,36 +21,15 @@ public class TreeTaggerUtils {
 	private static HashMap<String, String> correspondences = new HashMap<>();
 
 	public static void treeTagConfig(Language textLanguage) {
-		/*
+
 		String currentJarPath = "";
-		try {
-			currentJarPath = TreeTaggerUtils.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath();
-			currentJarPath = currentJarPath.substring(0, currentJarPath.lastIndexOf("/"));
-		} catch (URISyntaxException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
-		*/
-		String convFilename = "conversions/";
-		switch (textLanguage) {
-		case EN:
-			convFilename += "en.txt";
-			break;
-		case ES:
-			convFilename += "es.txt";
-			break;
-		case DE:
-			convFilename += "de.txt";
-			break;
-		case FR:
-			convFilename += "fr.txt";
-			break;
-		case IT:
-			convFilename += "it.txt";
-			break;
-		default:
-			break;
-		}
+
+		// Please uncomment the follow lines for the jar release
+		//File jarPath = new File(TreeTaggerUtils.class.getProtectionDomain().getCodeSource().getLocation().getPath());
+		//currentJarPath=jarPath.getParentFile().getAbsolutePath() + "/";
+
+		String convFilename = currentJarPath + "conversions/";
+		convFilename += textLanguage.toString().toLowerCase() + ".txt";
 		Scanner input;
 		try {
 			input = new Scanner(new File(convFilename));
@@ -62,9 +40,9 @@ public class TreeTaggerUtils {
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		} 
+		}
 		// TreeTagger Setting
-		System.setProperty("treetagger.home", "treetagger/");
+		System.setProperty("treetagger.home", currentJarPath + "treetagger/");
 	}
 
 	public static ArrayList<TagObject> tagToken(Language textLanguage,
@@ -72,26 +50,7 @@ public class TreeTaggerUtils {
 		final ArrayList<TagObject> tagObj = new ArrayList<TagObject>();
 		TreeTaggerWrapper<String> tt = new TreeTaggerWrapper<String>();
 		try {
-			switch (textLanguage) {
-			case EN:
-				tt.setModel("/english-utf8.par");
-				break;
-			case ES:
-				tt.setModel("/spanish-utf8.par");
-				break;
-			case DE:
-				tt.setModel("/german-utf8.par");
-				break;
-			case FR:
-				tt.setModel("/french-utf8.par");
-				break;
-			case IT:
-				tt.setModel("/italian-utf8.par");
-				break;
-			default:
-				break;
-			}
-
+			tt.setModel(textLanguage.toString().toLowerCase() + "-utf8.par");
 			tt.setHandler(new TokenHandler<String>() {
 				public void token(String token, String pos, String lemma) {
 					String val = correspondences.get(pos.toLowerCase());

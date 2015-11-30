@@ -1,6 +1,6 @@
 package it.unige.dibris.moodtc;
 
-import adm.TCModule;
+import it.unige.dibris.adm.TCModule;
 
 
 public class TCModuleNode {
