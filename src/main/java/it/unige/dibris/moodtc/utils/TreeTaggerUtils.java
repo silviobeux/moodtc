@@ -53,6 +53,12 @@ public class TreeTaggerUtils {
 			tt.setModel(textLanguage.toString().toLowerCase() + "-utf8.par");
 			tt.setHandler(new TokenHandler<String>() {
 				public void token(String token, String pos, String lemma) {
+					if(token.equals(".") || token.equals(";") || 
+							token.equals(":") || token.equals("?") ||
+							token.equals("!")){
+						tagObj.add(new TagObject(token, null, null));
+						return;
+					}
 					String val = correspondences.get(pos.toLowerCase());
 					if (val != null) {
 						switch (val) {

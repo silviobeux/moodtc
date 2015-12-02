@@ -1,7 +1,5 @@
 package it.unige.dibris.moodtc;
 
-import it.unige.dibris.adm.ClassifierObject;
-import it.unige.dibris.adm.TCOutput;
 import it.unige.dibris.moodtc.utils.JenaUtils;
 import it.unige.dibris.moodtc.utils.TCUtils;
 import it.unige.dibris.moodtc.utils.TreeTaggerUtils;
@@ -15,7 +13,13 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
+import it.unige.dibris.adm.ClassifierObject;
+import it.unige.dibris.adm.TCOutput;
 
 import com.hp.hpl.jena.ontology.OntClass;
 import com.hp.hpl.jena.util.FileManager;
@@ -27,8 +31,9 @@ public class TC {
 	private Language ontLang = Language.EN;
 	private String textFileName = null;
 	private String ontFileName = null;
-
-	private Language supportedLanguages[] = TCUtils.extractSupportedLanguages();
+	// should be loaded from a configuration file
+	private Language supportedLanguages[] = new Language[] { Language.EN,
+			Language.IT, Language.ES, Language.FR, Language.DE };
 
 	public TC() {
 		JenaUtils.jenaConfig();
@@ -53,7 +58,150 @@ public class TC {
 		Collections.reverse(tree);
 		return tree;
 	}
+	
+	private void updateInfo(ClassifierObject clssObj, List<ClassifierObject> info, boolean toAdd){
+		boolean contains = false;
+		for (int i = 0; i < info.size() && !contains; i++) {
+			ClassifierObject o = info.get(i);
+			if (o.getLemmaWord().equals(
+					clssObj.getLemmaWord())
+					&& (o.getPos() == null || (o.getPos().equals(clssObj.getPos())))) {
+				if(toAdd) o.getTextWords().addAll(clssObj.getTextWords());
+				else o.setTextWords(clssObj.getTextWords());
+				//o.addTextWord(obj.getTextWord());
+				contains = true;
+			}
+		}
+		if (!contains) {
+			info.add(clssObj);
+		}
+	}
+	
+	private void updateInfo(TagObject obj, String sense, OntClass c, List<ClassifierObject> info){
+		boolean contains = false;
+		for (int i = 0; i < info.size() && !contains; i++) {
+			ClassifierObject o = info.get(i);
+			if (o.getLemmaWord().equals(
+					obj.getLemmaWord())
+					&& (o.getPos() == null || (o.getPos().equals(obj.getPOS())))) {
+				o.addTextWord(obj.getTextWord());
+				contains = true;
+			}
+		}
+		if (!contains) {
+			ArrayList<ArrayList<String>> textWords = new ArrayList<>();
+			ArrayList<String> word = new ArrayList<String>();
+			word.add(obj.getTextWord());
+			textWords.add(word);
+			info.add(new ClassifierObject(textWords,
+					obj.getLemmaWord(), sense, obj.getPOS(),
+					getOntologyTree(c)));
+		}
+	}
+	
+	private OntClass findClasses(String sense, List<OntClass> incomplete){
+		sense = sense.replaceAll("([a-z])([A-Z])", "$1_$2");
+		List<String> senses = new ArrayList<String>(
+				Arrays.asList(sense.split("_")));
+		ExtendedIterator<OntClass> it = JenaUtils.ONTMODEL.listClasses();
+		while (it.hasNext()) {
+			OntClass c = (OntClass) it.next();
+			String name = c.getLocalName();
+			ArrayList<String> names = null;
+			if (name != null){
+		        name = name.replaceAll("([a-z])([A-Z])", "$1_$2");
+				names = new ArrayList<String>(
+						Arrays.asList(name.split("_")));
+			}
+			if (names != null && names.containsAll(senses)) {
+				if(names.size() == senses.size()){
+					return c;
+				}
+				else{
+					incomplete.add(c);
+				}
+			}
+		}
+		return null;
+	}
+	
+	/*public TCOutput classificationOld() {
+		TreeTaggerUtils.treeTagConfig(textLang);
+		TCOutput output = new TCOutput(textLang, ontLang, null);
+		ArrayList<ClassifierObject> info = new ArrayList<ClassifierObject>();
+		// use the FileManager to open the ontology from the filesystem
+		InputStream in = FileManager.get().open(this.ontFileName);
+		if (in == null)
+			throw new IllegalArgumentException("File: " + this.ontFileName
+					+ " not found");
+		// read the ontology file
+		JenaUtils.ONTMODEL.read(in, "");
+		// Extrapolate token from text
+		ArrayList<String> words = TCUtils.extractToken(this.textFileName);
+		ArrayList<TagObject> tagObj = TreeTaggerUtils.tagToken(textLang, words);
+		BabelNet bn = BabelNet.getInstance();
+		String regex = "([a-z])([A-Z])"; //Used for passing from camelCase to underscore_
+        String replacement = "$1_$2";
+		boolean found = false;
+	
+		for (TagObject obj : tagObj) {
+			found = false;
+			// HashSet<String> lemmas = new HashSet<String>();
+			try {
+				List<String> senses = new ArrayList<>();
+				for (BabelSynset syn : bn.getSynsets(textLang, obj.getLemmaWord(), obj.getPOS())) {
+					for (BabelSense sen : syn.getSenses(ontLang)) {
+						senses.add(sen.getLemma().toLowerCase());
+					}
+				}
+				for(String sense : senses){
+					if (!sense.contains("_")) {
+						ExtendedIterator<OntClass> it = JenaUtils.ONTMODEL.listClasses();
+						while (it.hasNext()) {
+							OntClass c = (OntClass) it.next();
+							String name = c.getLocalName();
+							ArrayList<String> names = null;
+							if (name != null){
+						        name = name.replaceAll(regex, replacement);
+								names = new ArrayList<String>(
+										Arrays.asList(name.split("_")));
+							}
+							if (names != null && names.contains(sense)) {
+								boolean contains = false;
+								for (int i = 0; i < info.size() && !contains; i++) {
+									ClassifierObject o = info.get(i);
+									if (o.getLemmaWord().equals(
+											obj.getLemmaWord())
+											&& o.getPos().equals(obj.getPOS())) {
+										o.addTextWord(obj.getTextWord());
+										contains = true;
+									}
+								}
+								if (!contains) {
+									List<String> textWords = new ArrayList<String>();
+									textWords.add(obj.getTextWord());
+									info.add(new ClassifierObject(textWords,
+											obj.getLemmaWord(), sense, obj
+													.getPOS(),
+											getOntologyTree(c)));
+								}
+								found = true;
+								break;
+							}
+						}
+					}
+					if(found) break;
+				}				
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		output.setInfo(info);
+		return output;
+	}*/
 
+	
 	public TCOutput classification() {
 		TreeTaggerUtils.treeTagConfig(textLang);
 		TCOutput output = new TCOutput(textLang, ontLang, null);
@@ -69,53 +217,157 @@ public class TC {
 		ArrayList<String> words = TCUtils.extractToken(this.textFileName);
 		ArrayList<TagObject> tagObj = TreeTaggerUtils.tagToken(textLang, words);
 		BabelNet bn = BabelNet.getInstance();
+		
 		boolean found = false;
+		List<ClassifierObject> completeClasses = new ArrayList<>();
+		List<ClassifierObject> incompleteClasses = new ArrayList<>();
+		
 		for (TagObject obj : tagObj) {
+			if(obj.getTextWord().contains(".")){
+				for(ClassifierObject clssObj : completeClasses){
+					updateInfo(clssObj, info, true);
+				}
+				completeClasses.clear();
+				incompleteClasses.clear();
+				continue;
+			}
+			
 			found = false;
 			// HashSet<String> lemmas = new HashSet<String>();
 			try {
-				for (BabelSynset syn : bn.getSynsets(textLang, obj.getLemmaWord(),
-						obj.getPOS())) {
+				
+				List<String> senses = new ArrayList<>();
+				for (BabelSynset syn : bn.getSynsets(textLang, obj.getLemmaWord(), obj.getPOS())) {
 					for (BabelSense sen : syn.getSenses(ontLang)) {
-						String sense = sen.getLemma().toLowerCase();
-						if (!sense.contains("_")) {
-							ExtendedIterator<OntClass> it = JenaUtils.ONTMODEL.listClasses();
-							while (it.hasNext()) {
-								OntClass c = (OntClass) it.next();
-								String name = c.getLocalName();
-								ArrayList<String> names = null;
-								if (name != null)
-									names = new ArrayList<String>(
-											Arrays.asList(name.split("_")));
-								if (names != null && names.contains(sense)) {
-									boolean contains = false;
-									for (int i = 0; i < info.size() && !contains; i++) {
-										ClassifierObject o = info.get(i);
-										if (o.getLemmaWord().equals(
-												obj.getLemmaWord())
-												&& o.getPos().equals(obj.getPOS())) {
-											o.addTextWord(obj.getTextWord());
-											contains = true;
-										}
-									}
-									if (!contains) {
-										List<String> textWords = new ArrayList<String>();
-										textWords.add(obj.getTextWord());
-										info.add(new ClassifierObject(textWords,
-												obj.getLemmaWord(), sense, obj
-														.getPOS(),
-												getOntologyTree(c)));
-									}
-									found = true;
-									break;
-								}
-							}
-						}
-						if (found)
-							break;
+						senses.add(sen.getLemma().toLowerCase());
 					}
-					if (found)
-						break;
+				}
+				
+				List<ClassifierObject> incompleteClassesAux = new ArrayList<>();
+				
+				List<Integer> incompleteClassesToRemove = new ArrayList<>();
+				for(String sense : senses){
+					if (!sense.contains("_")) {
+						for(int i = 0; i < incompleteClasses.size(); i++){
+							ClassifierObject incCls = incompleteClasses.get(i);
+							//String[] compoundOntologyWords = new String[2];
+							String compoundOntologyWord = incCls.getOntologyWord() + "_" + sense;
+							//compoundOntologyWords[1] = sense + "_" + incCls.getOntologyWord();
+							//String[] compoundLemmaWords = new String[2];
+							String compoundLemmaWord = incCls.getLemmaWord() + " " + obj.getLemmaWord();
+							//compoundLemmaWords[1] = obj.getLemmaWord() + " " + incCls.getLemmaWord();
+							//ArrayList<OntClass> complete = new ArrayList<>();
+							ArrayList<OntClass> incomplete = new ArrayList<>();
+							//incomplete.add(new ArrayList<>()); incomplete.add(new ArrayList<>());
+							OntClass complete = findClasses(compoundOntologyWord, incomplete);
+							//complete.add(findClasses(compoundOntologyWords[1], incomplete.get(1)));
+							//for(int j = 0; j < complete.size(); j++){
+							if(complete != null){
+								incompleteClasses.remove(i);
+								for( ArrayList<String> ws : incCls.getTextWords()){
+									ws.add(obj.getTextWord());
+								}
+								updateInfo(new ClassifierObject(incCls.getTextWords(),
+										compoundLemmaWord, compoundOntologyWord, null,
+										getOntologyTree(complete)), completeClasses, true);
+								found = true;
+								break;
+							}
+							//}
+							if(found) break;
+							
+							//for(int j = 0; j < incomplete.size(); j++){
+							if(incomplete.size() != 0){
+								ArrayList<ArrayList<String>> clone = new ArrayList<>();
+								for(ArrayList<String> e : incCls.getTextWords()){
+									ArrayList<String> cloneDeep = new ArrayList<>();
+									for(String s : e){
+										cloneDeep.add(s);
+									}
+									cloneDeep.add(obj.getTextWord());
+									clone.add(cloneDeep);
+								}
+								updateInfo(new ClassifierObject(clone,
+										compoundLemmaWord, compoundOntologyWord, null,
+										null), incompleteClassesAux, false);
+								if(!incompleteClassesToRemove.contains(i))
+									incompleteClassesToRemove.add(i);
+							}
+							//}
+						}
+						if(found) break;
+					}
+				}
+				if(found) continue;
+				
+				// Complete singular terms
+				for(String sense : senses){
+					if (!sense.contains("_")) {
+						List<OntClass> incomplete = new ArrayList<>();
+						OntClass complete = findClasses(sense, incomplete);
+						if(incomplete.size() != 0){
+							//for(OntClass o : incomplete){
+							ArrayList<ArrayList<String>> newTextWords = new ArrayList<>();
+							ArrayList<String> word = new ArrayList<>();
+							word.add(obj.getTextWord());
+							newTextWords.add(word);
+							updateInfo(new ClassifierObject(newTextWords,
+									obj.getLemmaWord(), sense, obj.getPOS(),
+									getOntologyTree(incomplete.get(0))), incompleteClassesAux, false);
+							//}
+						}
+						if(complete != null){ //if sense has a complete "correspondence" with an ontology class 
+							updateInfo(obj, sense, complete, completeClasses);
+							found = true;
+							break;
+						}
+					}
+				}
+				if(found) continue;
+				
+				for(String sense : senses){
+					if (!sense.contains("_")) {
+						int i;
+						for(i = 0; i < completeClasses.size(); i++){
+							ClassifierObject cCls = completeClasses.get(i);
+							//String[] compoundOntologyWords = new String[2];
+							String compoundOntologyWord = cCls.getOntologyWord() + "_" + sense;
+							//compoundOntologyWords[1] = sense + "_" + incCls.getOntologyWord();
+							//String[] compoundLemmaWords = new String[2];
+							String compoundLemmaWord = cCls.getLemmaWord() + " " + obj.getLemmaWord();
+							//compoundLemmaWords[1] = obj.getLemmaWord() + " " + incCls.getLemmaWord();
+							//ArrayList<OntClass> complete = new ArrayList<>();
+							ArrayList<OntClass> incomplete = new ArrayList<>();
+							//incomplete.add(new ArrayList<>()); incomplete.add(new ArrayList<>());
+							OntClass complete = findClasses(compoundOntologyWord, incomplete);
+							//complete.add(findClasses(compoundOntologyWords[1], incomplete.get(1)));
+							
+							//for(int j = 0; j < complete.size(); j++){
+							if(complete != null){ //if sense completes a complete class which has already seen
+								completeClasses.remove(i);
+								for( ArrayList<String> ws : cCls.getTextWords()){
+									ws.add(obj.getTextWord());
+								}
+								updateInfo(new ClassifierObject(cCls.getTextWords(),
+										compoundLemmaWord, compoundOntologyWord, null,
+										getOntologyTree(complete)), completeClasses, true);
+								found = true;
+								break;
+							}
+							//}
+						}
+						if(found) break;
+					}
+				}
+				if(found) continue;
+				
+				Collections.sort(incompleteClassesToRemove, Comparator.reverseOrder());
+				
+				for(int i : incompleteClassesToRemove){
+					incompleteClasses.remove(i);
+				}
+				for(ClassifierObject clssObj : incompleteClassesAux){
+					updateInfo(clssObj, incompleteClasses, false);
 				}
 			} catch (IOException e) {
 				// TODO Auto-generated catch block

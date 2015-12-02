@@ -15,7 +15,15 @@ public class TCUtils {
 		try {
 			input = new Scanner(new File(pathFile));
 			while (input.hasNext()) {
-				for (String s : input.next().split("[.!,(')?;:]"))
+				for (String s : input.next()
+						.replaceAll("[.]+", ".")
+						.replaceAll("[;]+", ".")
+						.replaceAll("[:]+", ".")
+						.replaceAll("[!]+", ".")
+						.replaceAll("[?]+", ".")
+						.replaceAll("\\.([^ ]+)\\.", " $1. ")
+						.replace(".", " _._ ")
+						.split("[_,(') ]"))
 					if (s.length() > 0)
 						words.add(s.toLowerCase());
 			}
