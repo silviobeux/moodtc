@@ -59,16 +59,17 @@ public class TC {
 		return tree;
 	}
 	
+	// update the info list with the new classifier object clssObj
+	// if toAdd is true when we update an incomplete class, false otherwise
 	private void updateInfo(ClassifierObject clssObj, List<ClassifierObject> info, boolean toAdd){
 		boolean contains = false;
 		for (int i = 0; i < info.size() && !contains; i++) {
 			ClassifierObject o = info.get(i);
-			if (o.getLemmaWord().equals(
-					clssObj.getLemmaWord())
+			if (o.getLemmaWord().split(" ").length == clssObj.getLemmaWord().split(" ").length &&
+					Arrays.asList(o.getLemmaWord().split(" ")).containsAll(Arrays.asList(clssObj.getLemmaWord().split(" ")))
 					&& (o.getPos() == null || (o.getPos().equals(clssObj.getPos())))) {
 				if(toAdd) o.getTextWords().addAll(clssObj.getTextWords());
 				else o.setTextWords(clssObj.getTextWords());
-				//o.addTextWord(obj.getTextWord());
 				contains = true;
 			}
 		}
@@ -81,8 +82,8 @@ public class TC {
 		boolean contains = false;
 		for (int i = 0; i < info.size() && !contains; i++) {
 			ClassifierObject o = info.get(i);
-			if (o.getLemmaWord().equals(
-					obj.getLemmaWord())
+			if (o.getLemmaWord().split(" ").length == obj.getLemmaWord().split(" ").length &&
+					Arrays.asList(o.getLemmaWord().split(" ")).containsAll(Arrays.asList(obj.getLemmaWord().split(" ")))
 					&& (o.getPos() == null || (o.getPos().equals(obj.getPOS())))) {
 				o.addTextWord(obj.getTextWord());
 				contains = true;
@@ -102,22 +103,22 @@ public class TC {
 	private OntClass findClasses(String sense, List<OntClass> incomplete){
 		sense = sense.replaceAll("([a-z])([A-Z])", "$1_$2");
 		List<String> senses = new ArrayList<String>(
-				Arrays.asList(sense.split("_")));
+				Arrays.asList(sense.split("_"))); // decompose sense in all its subterms
 		ExtendedIterator<OntClass> it = JenaUtils.ONTMODEL.listClasses();
-		while (it.hasNext()) {
+		while (it.hasNext()) { // for each class in the ontology
 			OntClass c = (OntClass) it.next();
 			String name = c.getLocalName();
 			ArrayList<String> names = null;
 			if (name != null){
-		        name = name.replaceAll("([a-z])([A-Z])", "$1_$2");
+		        name = name.replaceAll("([a-z])([A-Z])", "$1_$2"); // replace camelCase with underscore
 				names = new ArrayList<String>(
 						Arrays.asList(name.split("_")));
 			}
-			if (names != null && names.containsAll(senses)) {
-				if(names.size() == senses.size()){
+			if (names != null && names.containsAll(senses)) { // if the ontology class contains all the words contained in the sense
+				if(names.size() == senses.size()){ // and only that
 					return c;
 				}
-				else{
+				else{ // otherwise is a spurious match
 					incomplete.add(c);
 				}
 			}
@@ -127,10 +128,10 @@ public class TC {
 	
 	private boolean addToComplete(ClassifierObject cls, TagObject obj, String sense, 
 			List<ClassifierObject> completeClasses, List<OntClass> incomplete){
-		String compoundOntologyWord = cls.getOntologyWord() + "_" + sense;
-		String compoundLemmaWord = cls.getLemmaWord() + " " + obj.getLemmaWord();
+		String compoundOntologyWord = cls.getOntologyWord() + "_" + sense; // the new ontology word created by the composition
+		String compoundLemmaWord = cls.getLemmaWord() + " " + obj.getLemmaWord(); // the new text word created by the composition
 		OntClass complete = findClasses(compoundOntologyWord, incomplete);
-		if(complete != null){
+		if(complete != null){ // if the compound word matches with an ontology class
 			for( ArrayList<String> ws : cls.getTextWords()){
 				ws.add(obj.getTextWord());
 			}
@@ -138,7 +139,7 @@ public class TC {
 					compoundLemmaWord, compoundOntologyWord, null,
 					getOntologyTree(complete)), completeClasses, true);
 			return true;
-		}
+		} // otherwise (however, we are interested in all partial results, like the incomplete classes)
 		return false;
 	}
 	
@@ -270,7 +271,7 @@ public class TC {
 				// becomes obsolete when a more complex incomplete class (with a superset lemma) has been found) 	
 				List<Integer> incompleteClassesToRemove = new ArrayList<>();
 				
-				// INCOMPLETE ---> COMPLETE
+				// INCOMPLETE ---> (IN)COMPLETE
 				// block dedicated to complete the incomplete classes
 				for(String sense : senses){
 					if (!sense.contains("_")) {
