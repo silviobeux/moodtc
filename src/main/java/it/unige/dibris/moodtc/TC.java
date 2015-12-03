@@ -38,7 +38,7 @@ public class TC {
 	}
 	
 	public TC(String ontologyFileName, String textFileName) throws IOException{
-		this.textLoader = new TextLoader(textFileName);
+		this.textLoader = new TextLoader(new File(textFileName));
 		this.ontLoader = new OntologyLoader(ontologyFileName);
 	}
 	
