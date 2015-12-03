@@ -125,6 +125,23 @@ public class TC {
 		return null;
 	}
 	
+	private boolean addToComplete(ClassifierObject cls, TagObject obj, String sense, 
+			List<ClassifierObject> completeClasses, List<OntClass> incomplete){
+		String compoundOntologyWord = cls.getOntologyWord() + "_" + sense;
+		String compoundLemmaWord = cls.getLemmaWord() + " " + obj.getLemmaWord();
+		OntClass complete = findClasses(compoundOntologyWord, incomplete);
+		if(complete != null){
+			for( ArrayList<String> ws : cls.getTextWords()){
+				ws.add(obj.getTextWord());
+			}
+			updateInfo(new ClassifierObject(cls.getTextWords(),
+					compoundLemmaWord, compoundOntologyWord, null,
+					getOntologyTree(complete)), completeClasses, true);
+			return true;
+		}
+		return false;
+	}
+	
 	/*public TCOutput classificationOld() {
 		TreeTaggerUtils.treeTagConfig(textLang);
 		TCOutput output = new TCOutput(textLang, ontLang, null);
@@ -200,7 +217,6 @@ public class TC {
 		output.setInfo(info);
 		return output;
 	}*/
-
 	
 	public TCOutput classification() {
 		TreeTaggerUtils.treeTagConfig(textLang);
@@ -219,23 +235,28 @@ public class TC {
 		BabelNet bn = BabelNet.getInstance();
 		
 		boolean found = false;
+		// list containing all classes which have been completed in this period
 		List<ClassifierObject> completeClasses = new ArrayList<>();
+		// list containing all classes which haven't been completed in this period (these could become complete)
 		List<ClassifierObject> incompleteClasses = new ArrayList<>();
 		
+		// for each word of the text which has been tagged correctly
 		for (TagObject obj : tagObj) {
+			// All characters (.;:!?) have been changed in (.); in this way, the research of the end of the period
+			// is simplified. When we find a dot we have to "clear" both list containing the classes found, adding 
+			// only those that have been completed.
 			if(obj.getTextWord().contains(".")){
 				for(ClassifierObject clssObj : completeClasses){
 					updateInfo(clssObj, info, true);
 				}
 				completeClasses.clear();
 				incompleteClasses.clear();
-				continue;
+				continue; // skip this iteration (it is only a dot!)
 			}
 			
 			found = false;
-			// HashSet<String> lemmas = new HashSet<String>();
 			try {
-				
+				// unroll all senses of this tagged word
 				List<String> senses = new ArrayList<>();
 				for (BabelSynset syn : bn.getSynsets(textLang, obj.getLemmaWord(), obj.getPOS())) {
 					for (BabelSense sen : syn.getSenses(ontLang)) {
@@ -243,43 +264,31 @@ public class TC {
 					}
 				}
 				
+				// auxiliary list used to heap all incomplete classes which will found during the analysis
 				List<ClassifierObject> incompleteClassesAux = new ArrayList<>();
-				
+				// auxiliary list necessary to remove the obsolete incomplete classes (an incomplete class 
+				// becomes obsolete when a more complex incomplete class (with a superset lemma) has been found) 	
 				List<Integer> incompleteClassesToRemove = new ArrayList<>();
+				
+				// INCOMPLETE ---> COMPLETE
+				// block dedicated to complete the incomplete classes
 				for(String sense : senses){
 					if (!sense.contains("_")) {
+						// for each incomplete class which has been found in this period until now
 						for(int i = 0; i < incompleteClasses.size(); i++){
 							ClassifierObject incCls = incompleteClasses.get(i);
-							//String[] compoundOntologyWords = new String[2];
-							String compoundOntologyWord = incCls.getOntologyWord() + "_" + sense;
-							//compoundOntologyWords[1] = sense + "_" + incCls.getOntologyWord();
-							//String[] compoundLemmaWords = new String[2];
-							String compoundLemmaWord = incCls.getLemmaWord() + " " + obj.getLemmaWord();
-							//compoundLemmaWords[1] = obj.getLemmaWord() + " " + incCls.getLemmaWord();
-							//ArrayList<OntClass> complete = new ArrayList<>();
+							// try to complete an incomplete class 
 							ArrayList<OntClass> incomplete = new ArrayList<>();
-							//incomplete.add(new ArrayList<>()); incomplete.add(new ArrayList<>());
-							OntClass complete = findClasses(compoundOntologyWord, incomplete);
-							//complete.add(findClasses(compoundOntologyWords[1], incomplete.get(1)));
-							//for(int j = 0; j < complete.size(); j++){
-							if(complete != null){
-								incompleteClasses.remove(i);
-								for( ArrayList<String> ws : incCls.getTextWords()){
-									ws.add(obj.getTextWord());
-								}
-								updateInfo(new ClassifierObject(incCls.getTextWords(),
-										compoundLemmaWord, compoundOntologyWord, null,
-										getOntologyTree(complete)), completeClasses, true);
-								found = true;
-								break;
+							if(addToComplete(incCls, obj, sense, completeClasses, incomplete)){
+								incompleteClasses.remove(i); // the class now is complete, so we have to remove it from the incomplete classes list
+								found = true; break;
 							}
-							//}
-							if(found) break;
-							
-							//for(int j = 0; j < incomplete.size(); j++){
+							// even if the incomplete class does not become complete using the current sense of the word,
+							// we can update the list of incomplete classes with these new classes which are more complex
+							// and refer to entries longer (lemma word)
 							if(incomplete.size() != 0){
 								ArrayList<ArrayList<String>> clone = new ArrayList<>();
-								for(ArrayList<String> e : incCls.getTextWords()){
+								for(ArrayList<String> e : incCls.getTextWords()){ // add the new text word at the end of each word
 									ArrayList<String> cloneDeep = new ArrayList<>();
 									for(String s : e){
 										cloneDeep.add(s);
@@ -287,74 +296,55 @@ public class TC {
 									cloneDeep.add(obj.getTextWord());
 									clone.add(cloneDeep);
 								}
+								// add the new incomplete class to the auxiliary list of the new incomplete classes
 								updateInfo(new ClassifierObject(clone,
-										compoundLemmaWord, compoundOntologyWord, null,
+										incCls.getLemmaWord() + " " + obj.getLemmaWord(), 
+										incCls.getOntologyWord() + "_" + sense, null,
 										null), incompleteClassesAux, false);
-								if(!incompleteClassesToRemove.contains(i))
+								if(!incompleteClassesToRemove.contains(i)) // update the classes which will be removed (since obsolete)
 									incompleteClassesToRemove.add(i);
-							}
-							//}
+							}							
 						}
 						if(found) break;
 					}
 				}
 				if(found) continue;
 				
-				// Complete singular terms
+				// bloch dedicated to find a direct correspondence with a single term in the ontology
 				for(String sense : senses){
 					if (!sense.contains("_")) {
 						List<OntClass> incomplete = new ArrayList<>();
 						OntClass complete = findClasses(sense, incomplete);
+						if(complete != null){ //if sense has a complete "correspondence" with an ontology class 
+							updateInfo(obj, sense, complete, completeClasses);
+							found = true; break;
+						}
+						// the sense hasn't a direct term in the ontology but it can have an incomplete term in the ontology 
 						if(incomplete.size() != 0){
-							//for(OntClass o : incomplete){
 							ArrayList<ArrayList<String>> newTextWords = new ArrayList<>();
 							ArrayList<String> word = new ArrayList<>();
 							word.add(obj.getTextWord());
-							newTextWords.add(word);
+							newTextWords.add(word); // save the current text word
 							updateInfo(new ClassifierObject(newTextWords,
 									obj.getLemmaWord(), sense, obj.getPOS(),
 									getOntologyTree(incomplete.get(0))), incompleteClassesAux, false);
-							//}
-						}
-						if(complete != null){ //if sense has a complete "correspondence" with an ontology class 
-							updateInfo(obj, sense, complete, completeClasses);
-							found = true;
-							break;
 						}
 					}
 				}
 				if(found) continue;
 				
+				// COMPLETE ---> COMPLETE
+				// block dedicated to complete a complete (make it more complex)
 				for(String sense : senses){
 					if (!sense.contains("_")) {
-						int i;
-						for(i = 0; i < completeClasses.size(); i++){
+						for(int i = 0; i < completeClasses.size(); i++){
 							ClassifierObject cCls = completeClasses.get(i);
-							//String[] compoundOntologyWords = new String[2];
-							String compoundOntologyWord = cCls.getOntologyWord() + "_" + sense;
-							//compoundOntologyWords[1] = sense + "_" + incCls.getOntologyWord();
-							//String[] compoundLemmaWords = new String[2];
-							String compoundLemmaWord = cCls.getLemmaWord() + " " + obj.getLemmaWord();
-							//compoundLemmaWords[1] = obj.getLemmaWord() + " " + incCls.getLemmaWord();
-							//ArrayList<OntClass> complete = new ArrayList<>();
 							ArrayList<OntClass> incomplete = new ArrayList<>();
-							//incomplete.add(new ArrayList<>()); incomplete.add(new ArrayList<>());
-							OntClass complete = findClasses(compoundOntologyWord, incomplete);
-							//complete.add(findClasses(compoundOntologyWords[1], incomplete.get(1)));
-							
-							//for(int j = 0; j < complete.size(); j++){
-							if(complete != null){ //if sense completes a complete class which has already seen
+							// try to complete a complete class 
+							if(addToComplete(cCls, obj, sense, completeClasses, incomplete)){
 								completeClasses.remove(i);
-								for( ArrayList<String> ws : cCls.getTextWords()){
-									ws.add(obj.getTextWord());
-								}
-								updateInfo(new ClassifierObject(cCls.getTextWords(),
-										compoundLemmaWord, compoundOntologyWord, null,
-										getOntologyTree(complete)), completeClasses, true);
-								found = true;
-								break;
+								found = true; break;
 							}
-							//}
 						}
 						if(found) break;
 					}
