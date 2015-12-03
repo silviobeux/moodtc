@@ -1,51 +1,57 @@
 package it.unige.dibris.moodtc;
 
-import it.unige.dibris.moodtc.utils.JenaUtils;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import com.hp.hpl.jena.ontology.OntClass;
+import com.hp.hpl.jena.util.iterator.ExtendedIterator;
+import it.unige.dibris.adm.ClassifierObject;
+import it.unige.dibris.adm.TCOutput;
+import it.unige.dibris.moodtc.utils.OntologyLoader;
 import it.unige.dibris.moodtc.utils.TCUtils;
+import it.unige.dibris.moodtc.utils.TextLoader;
 import it.unige.dibris.moodtc.utils.TreeTaggerUtils;
+import it.unige.dibris.moodtc.utils.Execptions.ClassifierStateException;
 import it.uniroma1.lcl.babelnet.BabelNet;
 import it.uniroma1.lcl.babelnet.BabelSense;
 import it.uniroma1.lcl.babelnet.BabelSynset;
 import it.uniroma1.lcl.jlt.util.Language;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import it.unige.dibris.adm.ClassifierObject;
-import it.unige.dibris.adm.TCOutput;
-
-import com.hp.hpl.jena.ontology.OntClass;
-import com.hp.hpl.jena.util.FileManager;
-import com.hp.hpl.jena.util.iterator.ExtendedIterator;
-
 public class TC {
 
-	private Language textLang = Language.EN;
-	private Language ontLang = Language.EN;
-	private String textFileName = null;
-	private String ontFileName = null;
+	//private Language textLang = Language.EN;
+	//private Language ontLang = Language.EN;
+	private OntologyLoader ontLoader;
+	private TextLoader textLoader;
+	//private String textFileName = null;
+	//private String ontFileName = null;
 	// should be loaded from a configuration file
 	private Language supportedLanguages[] = new Language[] { Language.EN,
 			Language.IT, Language.ES, Language.FR, Language.DE };
 
 	public TC() {
-		JenaUtils.jenaConfig();
+		
 	}
-
-	public TC(Language textLang, Language ontLang, String textFileName,
-			String ontFileName) {
-		this.textLang = textLang;
-		this.ontLang = ontLang;
-		this.textFileName = textFileName;
-		this.ontFileName = ontFileName;
-		JenaUtils.jenaConfig();
+	
+	public TC(String ontologyFileName, String textFileName) throws IOException{
+		this.textLoader = new TextLoader(textFileName);
+		this.ontLoader = new OntologyLoader(ontologyFileName);
+	}
+	
+	public void loadOntology(String ontologyFileName){
+		this.ontLoader = new OntologyLoader(ontologyFileName);
+	}
+	
+	public void loadTextFromFile(String filename) throws IOException{
+		this.textLoader = new TextLoader(new File(filename));
+	}
+	
+	public void loadText(String text){
+		this.textLoader = new TextLoader(text);
 	}
 
 	public ArrayList<String> getOntologyTree(OntClass c) {
@@ -104,7 +110,7 @@ public class TC {
 		sense = sense.replaceAll("([a-z])([A-Z])", "$1_$2");
 		List<String> senses = new ArrayList<String>(
 				Arrays.asList(sense.split("_"))); // decompose sense in all its subterms
-		ExtendedIterator<OntClass> it = JenaUtils.ONTMODEL.listClasses();
+		ExtendedIterator<OntClass> it = OntologyLoader.getOntModel().listClasses();
 		while (it.hasNext()) { // for each class in the ontology
 			OntClass c = (OntClass) it.next();
 			String name = c.getLocalName();
@@ -220,19 +226,21 @@ public class TC {
 	}*/
 	
 	public TCOutput classification() {
-		TreeTaggerUtils.treeTagConfig(textLang);
-		TCOutput output = new TCOutput(textLang, ontLang, null);
+		if(textLoader == null){
+			throw new ClassifierStateException("Load a text file in order to do the classification");
+		}
+		if(ontLoader == null){
+			throw new ClassifierStateException("Load an ontology file in order to the classification");
+		}
+		
+		TreeTaggerUtils.treeTagConfig(textLoader.getLanguage());
+		TCOutput output = new TCOutput(textLoader.getLanguage(), ontLoader.getLanguage(), null);
+		
 		ArrayList<ClassifierObject> info = new ArrayList<ClassifierObject>();
-		// use the FileManager to open the ontology from the filesystem
-		InputStream in = FileManager.get().open(this.ontFileName);
-		if (in == null)
-			throw new IllegalArgumentException("File: " + this.ontFileName
-					+ " not found");
-		// read the ontology file
-		JenaUtils.ONTMODEL.read(in, "");
+		
 		// Extrapolate token from text
-		ArrayList<String> words = TCUtils.extractToken(this.textFileName);
-		ArrayList<TagObject> tagObj = TreeTaggerUtils.tagToken(textLang, words);
+		ArrayList<String> words = TCUtils.extractToken(textLoader.getFilename());
+		ArrayList<TagObject> tagObj = TreeTaggerUtils.tagToken(textLoader.getLanguage(), words);
 		BabelNet bn = BabelNet.getInstance();
 		
 		boolean found = false;
@@ -259,8 +267,8 @@ public class TC {
 			try {
 				// unroll all senses of this tagged word
 				List<String> senses = new ArrayList<>();
-				for (BabelSynset syn : bn.getSynsets(textLang, obj.getLemmaWord(), obj.getPOS())) {
-					for (BabelSense sen : syn.getSenses(ontLang)) {
+				for (BabelSynset syn : bn.getSynsets(textLoader.getLanguage(), obj.getLemmaWord(), obj.getPOS())) {
+					for (BabelSense sen : syn.getSenses(ontLoader.getLanguage())) {
 						senses.add(sen.getLemma().toLowerCase());
 					}
 				}
@@ -369,40 +377,36 @@ public class TC {
 		return output;
 	}
 
-	public Language getTextLang() {
-		return textLang;
-	}
-
-	public void setTextLang(Language textLang) {
-		this.textLang = textLang;
-	}
-
-	public Language getOntLang() {
-		return ontLang;
-	}
-
-	public void setOntLang(Language ontLang) {
-		this.ontLang = ontLang;
-	}
-
-	public String getTextFileName() {
-		return textFileName;
-	}
-
-	public void setTextFileName(String textFileName) {
-		this.textFileName = textFileName;
-	}
-
-	public String getOntFileName() {
-		return ontFileName;
-	}
-
-	public void setOntFileName(String ontFileName) {
-		this.ontFileName = ontFileName;
-	}
-
 	public Language[] getSupportedLanguages() {
 		return supportedLanguages;
+	}
+
+	/**
+	 * @return the ontLoader
+	 */
+	public OntologyLoader getOntLoader() {
+		return ontLoader;
+	}
+
+	/**
+	 * @return the textLoader
+	 */
+	public TextLoader getTextLoader() {
+		return textLoader;
+	}
+
+	/**
+	 * @param ontLoader the ontLoader to set
+	 */
+	public void setOntLoader(OntologyLoader ontLoader) {
+		this.ontLoader = ontLoader;
+	}
+
+	/**
+	 * @param textLoader the textLoader to set
+	 */
+	public void setTextLoader(TextLoader textLoader) {
+		this.textLoader = textLoader;
 	}
 
 	public void setSupportedLanguages(Language[] supportedLanguages) {

@@ -5,7 +5,7 @@ import com.hp.hpl.jena.ontology.OntModel;
 import com.hp.hpl.jena.ontology.OntModelSpec;
 import com.hp.hpl.jena.rdf.model.ModelFactory;
 
-public class JenaUtils {
+/*public class JenaUtils {
 	
 	public static OntModel ONTMODEL;
 	
@@ -18,4 +18,4 @@ public class JenaUtils {
 		ONTMODEL = ModelFactory.createOntologyModel(s, null);
 		ONTMODEL.setStrictMode(false);
 	}
-}
+}*/

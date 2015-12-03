@@ -1,10 +1,5 @@
 package it.unige.dibris.moodtc;
 
-import it.unige.dibris.moodtc.utils.JenaUtils;
-import it.unige.dibris.moodtc.utils.LanguageDetection;
-import it.uniroma1.lcl.jlt.util.Language;
-import it.uniroma1.lcl.jlt.util.Pair;
-
 import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Dimension;
@@ -18,7 +13,6 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -28,7 +22,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
 import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
@@ -59,17 +52,14 @@ import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreePath;
-
+import com.hp.hpl.jena.ontology.OntClass;
+import com.hp.hpl.jena.util.iterator.ExtendedIterator;
 import it.unige.dibris.adm.ClassifierObject;
 import it.unige.dibris.adm.ModuleOutput;
 import it.unige.dibris.adm.TCModule;
 import it.unige.dibris.adm.TCOutput;
-
-import com.hp.hpl.jena.ontology.OntClass;
-import com.hp.hpl.jena.ontology.OntModel;
-//import com.hp.hpl.jena.sdb.util.Pair;
-import com.hp.hpl.jena.util.FileManager;
-import com.hp.hpl.jena.util.iterator.ExtendedIterator;
+import it.unige.dibris.moodtc.utils.OntologyLoader;
+import it.uniroma1.lcl.jlt.util.Pair;
 
 public class GUI extends javax.swing.JFrame {
 
@@ -210,7 +200,6 @@ public class GUI extends javax.swing.JFrame {
 		HelpWindow = new javax.swing.JMenuItem();
 		HelpWindow.setForeground(new Color(51, 153, 255));
 		classifier = new TC();
-		ontModel = JenaUtils.ONTMODEL;
 		tableModel = null;
 
 		style = new SimpleAttributeSet();
@@ -430,13 +419,10 @@ public class GUI extends javax.swing.JFrame {
 			File selectedFile = fileChooser.getSelectedFile();
 			this.textFile = selectedFile.getPath();
 			try {
-				String text = readFile(textFile);
-				txtpnTextToClassify.setText(text);
+				classifier.loadTextFromFile(this.textFile);
+				txtpnTextToClassify.setText(classifier.getTextLoader().getText());
 				txtpnTextToClassify.setCaretPosition(0);
-				classifier.setTextFileName(textFile);
-				Language textLang = new LanguageDetection().detection(text);
-				classifier.setTextLang(textLang);
-				textLabel.setText("Language: " + textLang.getName());
+				textLabel.setText("Language: " + classifier.getTextLoader().getLanguage().getName());
 				System.out.println(textFile);
 				textIsPresent = true;
 			} catch (Exception e) {
@@ -455,17 +441,11 @@ public class GUI extends javax.swing.JFrame {
 		fileChooser.setFileFilter(filter);
 		int returnValue = fileChooser.showOpenDialog(null);
 		if (returnValue == JFileChooser.APPROVE_OPTION) {
-			String ont = "";
 			File selectedFile = fileChooser.getSelectedFile();
 			this.ontologyFile = selectedFile.getPath();
 			System.out.println(ontologyFile);
-			classifier.setOntFileName(ontologyFile);
-			InputStream in = FileManager.get().open(ontologyFile);
-			if (in == null)
-				throw new IllegalArgumentException("File: " + ontologyFile
-						+ " not found");
-			// read the ontology file
-			ontModel.read(in, "");
+			classifier.loadOntology(this.ontologyFile);
+			
 			DefaultTreeModel model = (DefaultTreeModel) tree.getModel();
 			DefaultMutableTreeNode root = (DefaultMutableTreeNode) model
 					.getRoot();
@@ -473,7 +453,7 @@ public class GUI extends javax.swing.JFrame {
 				root.removeAllChildren();
 				model.reload();
 			}
-			ExtendedIterator<?> it = ontModel.listHierarchyRootClasses();
+			ExtendedIterator<?> it = OntologyLoader.getOntModel().listHierarchyRootClasses();
 			while (it.hasNext()) {
 				OntClass c = (OntClass) it.next();
 				new DefaultMutableTreeNode(
@@ -484,7 +464,6 @@ public class GUI extends javax.swing.JFrame {
 				while (!fifo.isEmpty()) {
 					Pair<OntClass, DefaultMutableTreeNode> pair = fifo.remove();
 					OntClass cl = pair.getFirst();
-					ont += (cl.getLocalName() + " ");
 					DefaultMutableTreeNode father = pair.getSecond();
 					DefaultMutableTreeNode actualNode = new DefaultMutableTreeNode(
 							new TCOntologyTreeNode(cl));
@@ -504,9 +483,7 @@ public class GUI extends javax.swing.JFrame {
 			}
 			model.reload(root);
 			ontologyIsPresent = true;
-			Language ontLang = new LanguageDetection().detection(ont);
-			classifier.setOntLang(ontLang);
-			ontologyLabel.setText("Language: " + ontLang.getName());
+			ontologyLabel.setText("Language: " + classifier.getOntLoader().getLanguage().getName());
 		}
 	}
 
@@ -662,9 +639,15 @@ public class GUI extends javax.swing.JFrame {
 					if (pathToCollapse != null)
 						collapseAllPath(pathToCollapse);
 					if (module != null)
-						classifier.setTextFileName(module
-								.preProcessing(textFile));
+						try {
+							classifier.loadTextFromFile(module
+									.preProcessing(textFile));
+						} catch (IOException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
 					TCOutput out = classifier.classification();
+					
 					if (module != null) {
 						ModuleOutput m = module.postProcessing(out);
 						tableModel = new DefaultTableModel() {
@@ -777,7 +760,6 @@ public class GUI extends javax.swing.JFrame {
 	private JMenuItem jMenuItem3;
 	private JLabel lblModule;
 	private TC classifier;
-	private OntModel ontModel;
 	private JScrollPane scrollPane;
 	private JTree tree;
 	private JComboBox<TCModuleNode> ClassModule;
