@@ -7,6 +7,11 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+
 import com.hp.hpl.jena.ontology.OntClass;
 import com.hp.hpl.jena.util.iterator.ExtendedIterator;
 import it.unige.dibris.adm.ClassifierObject;
@@ -23,12 +28,9 @@ import it.uniroma1.lcl.jlt.util.Language;
 
 public class TC {
 
-	//private Language textLang = Language.EN;
-	//private Language ontLang = Language.EN;
 	private OntologyLoader ontLoader;
 	private TextLoader textLoader;
-	//private String textFileName = null;
-	//private String ontFileName = null;
+	private List<ClassifierObject> info;
 	// should be loaded from a configuration file
 	private Language supportedLanguages[] = new Language[] { Language.EN,
 			Language.IT, Language.ES, Language.FR, Language.DE };
@@ -225,24 +227,8 @@ public class TC {
 		return output;
 	}*/
 	
-	public TCOutput classification() {
-		if(textLoader == null){
-			throw new ClassifierStateException("Load a text file in order to do the classification");
-		}
-		if(ontLoader == null){
-			throw new ClassifierStateException("Load an ontology file in order to the classification");
-		}
-		
-		TreeTaggerUtils.treeTagConfig(textLoader.getLanguage());
-		TCOutput output = new TCOutput(textLoader.getLanguage(), ontLoader.getLanguage(), null);
-		
-		ArrayList<ClassifierObject> info = new ArrayList<ClassifierObject>();
-		
-		// Extrapolate token from text
-		ArrayList<String> words = TCUtils.extractToken(textLoader.getFilename());
-		ArrayList<TagObject> tagObj = TreeTaggerUtils.tagToken(textLoader.getLanguage(), words);
+	private List<ClassifierObject> processingAPeriod(List<TagObject> tagObj){
 		BabelNet bn = BabelNet.getInstance();
-		
 		boolean found = false;
 		// list containing all classes which have been completed in this period
 		List<ClassifierObject> completeClasses = new ArrayList<>();
@@ -251,18 +237,6 @@ public class TC {
 		
 		// for each word of the text which has been tagged correctly
 		for (TagObject obj : tagObj) {
-			// All characters (.;:!?) have been changed in (.); in this way, the research of the end of the period
-			// is simplified. When we find a dot we have to "clear" both list containing the classes found, adding 
-			// only those that have been completed.
-			if(obj.getTextWord().contains(".")){
-				for(ClassifierObject clssObj : completeClasses){
-					updateInfo(clssObj, info, true);
-				}
-				completeClasses.clear();
-				incompleteClasses.clear();
-				continue; // skip this iteration (it is only a dot!)
-			}
-			
 			found = false;
 			try {
 				// unroll all senses of this tagged word
@@ -373,6 +347,102 @@ public class TC {
 				e.printStackTrace();
 			}
 		}
+		
+		return completeClasses;
+	}
+	
+	public TCOutput classificationConcurrent() {
+		if(textLoader == null){
+			throw new ClassifierStateException("Load a text file in order to do the classification");
+		}
+		if(ontLoader == null){
+			throw new ClassifierStateException("Load an ontology file in order to the classification");
+		}
+		
+		TreeTaggerUtils.treeTagConfig(textLoader.getLanguage());
+		TCOutput output = new TCOutput(textLoader.getLanguage(), ontLoader.getLanguage(), null);
+		
+		info = new ArrayList<ClassifierObject>();
+		
+		// Extrapolate token from text
+		ArrayList<String> words = TCUtils.extractToken(textLoader.getFilename());
+		ArrayList<TagObject> tagObjs = TreeTaggerUtils.tagToken(textLoader.getLanguage(), words);
+		
+		ArrayList<ArrayList<TagObject>> tagObjPeriods = new ArrayList<>();
+		tagObjPeriods.add(new ArrayList<>());
+		int index = 0;
+		for(TagObject tagObj : tagObjs){
+			if(tagObj.getTextWord().contains(".")) {
+				index++;
+				tagObjPeriods.add(new ArrayList<>());
+			}
+			else{
+				tagObjPeriods.get(index).add(tagObj);
+			}
+		}
+		
+		ExecutorService threadpool = Executors.newCachedThreadPool();
+		ArrayList<Future<List<ClassifierObject>>> results = new ArrayList<>();;
+		for(ArrayList<TagObject> tagObj : tagObjPeriods){
+			results.add(threadpool.submit(
+					() -> 
+					{
+						return processingAPeriod(tagObj);	
+					}));
+		}
+		
+		try {
+			for(Future<List<ClassifierObject>> res : results){
+				List<ClassifierObject> completeClasses = res.get();
+				for(ClassifierObject clssObj : completeClasses){
+					updateInfo(clssObj, info, true);
+				}
+			}
+		} catch (InterruptedException | ExecutionException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		output.setInfo(info);
+		return output;
+	}
+	
+	public TCOutput classification() {
+		if(textLoader == null){
+			throw new ClassifierStateException("Load a text file in order to do the classification");
+		}
+		if(ontLoader == null){
+			throw new ClassifierStateException("Load an ontology file in order to the classification");
+		}
+		
+		TreeTaggerUtils.treeTagConfig(textLoader.getLanguage());
+		TCOutput output = new TCOutput(textLoader.getLanguage(), ontLoader.getLanguage(), null);
+		
+		ArrayList<ClassifierObject> info = new ArrayList<ClassifierObject>();
+		
+		// Extrapolate token from text
+		ArrayList<String> words = TCUtils.extractToken(textLoader.getFilename());
+		ArrayList<TagObject> tagObjs = TreeTaggerUtils.tagToken(textLoader.getLanguage(), words);
+		
+		ArrayList<ArrayList<TagObject>> tagObjPeriods = new ArrayList<>();
+		tagObjPeriods.add(new ArrayList<>());
+		int index = 0;
+		for(TagObject tagObj : tagObjs){
+			if(tagObj.getTextWord().contains(".")) {
+				index++;
+				tagObjPeriods.add(new ArrayList<>());
+			}
+			else{
+				tagObjPeriods.get(index).add(tagObj);
+			}
+		}
+		
+		for(ArrayList<TagObject> tagObj : tagObjPeriods){
+			for(ClassifierObject clssObj : processingAPeriod(tagObj)){
+				updateInfo(clssObj, info, true);
+			}
+		}
+		
 		output.setInfo(info);
 		return output;
 	}

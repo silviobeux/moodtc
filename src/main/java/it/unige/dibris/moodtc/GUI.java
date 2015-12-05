@@ -646,7 +646,8 @@ public class GUI extends javax.swing.JFrame {
 							// TODO Auto-generated catch block
 							e.printStackTrace();
 						}
-					TCOutput out = classifier.classification();
+					//TCOutput out = classifier.classification();
+					TCOutput out = classifier.classificationConcurrent();
 					
 					if (module != null) {
 						ModuleOutput m = module.postProcessing(out);
