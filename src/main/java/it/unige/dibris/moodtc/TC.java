@@ -13,14 +13,18 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import com.hp.hpl.jena.ontology.OntClass;
+import com.hp.hpl.jena.rdf.model.SimpleSelector;
 import com.hp.hpl.jena.util.iterator.ExtendedIterator;
+import com.hp.hpl.jena.util.iterator.Filter;
+
 import it.unige.dibris.adm.ClassifierObject;
 import it.unige.dibris.adm.TCOutput;
+import it.unige.dibris.moodtc.utils.LanguageDetection;
 import it.unige.dibris.moodtc.utils.OntologyLoader;
 import it.unige.dibris.moodtc.utils.TCUtils;
 import it.unige.dibris.moodtc.utils.TextLoader;
 import it.unige.dibris.moodtc.utils.TreeTaggerUtils;
-import it.unige.dibris.moodtc.utils.Execptions.ClassifierStateException;
+import it.unige.dibris.moodtc.utils.Exceptions.ClassifierStateException;
 import it.uniroma1.lcl.babelnet.BabelNet;
 import it.uniroma1.lcl.babelnet.BabelSense;
 import it.uniroma1.lcl.babelnet.BabelSynset;
@@ -112,13 +116,14 @@ public class TC {
 		sense = sense.replaceAll("([a-z])([A-Z])", "$1_$2");
 		List<String> senses = new ArrayList<String>(
 				Arrays.asList(sense.split("_"))); // decompose sense in all its subterms
+		
 		ExtendedIterator<OntClass> it = OntologyLoader.getOntModel().listClasses();
 		while (it.hasNext()) { // for each class in the ontology
 			OntClass c = (OntClass) it.next();
 			String name = c.getLocalName();
 			ArrayList<String> names = null;
 			if (name != null){
-		        name = name.replaceAll("([a-z])([A-Z])", "$1_$2"); // replace camelCase with underscore
+		        name = name.replaceAll("([a-z])([A-Z])", "$1_$2").toLowerCase(); // replace camelCase with underscore
 				names = new ArrayList<String>(
 						Arrays.asList(name.split("_")));
 			}
@@ -241,11 +246,24 @@ public class TC {
 			try {
 				// unroll all senses of this tagged word
 				List<String> senses = new ArrayList<>();
-				for (BabelSynset syn : bn.getSynsets(textLoader.getLanguage(), obj.getLemmaWord(), obj.getPOS())) {
+				
+				List<BabelSynset> synsets = bn.getSynsets(textLoader.getLanguage(), obj.getLemmaWord(), obj.getPOS());
+				if(synsets == null || synsets.isEmpty()){
+					synsets = bn.getSynsets(textLoader.getLanguage(), obj.getLemmaWord());
+					//senses.add(obj.getLemmaWord());
+				}
+				if(synsets == null || synsets.isEmpty()){
+					Language lemmaLanguage = new LanguageDetection().detection(obj.getLemmaWord());
+					if(lemmaLanguage != null) synsets = bn.getSynsets(lemmaLanguage, obj.getLemmaWord());
+				}
+				for (BabelSynset syn : synsets) {
 					for (BabelSense sen : syn.getSenses(ontLoader.getLanguage())) {
 						senses.add(sen.getLemma().toLowerCase());
 					}
 				}
+				//if(textLoader.getLanguage() == ontLoader.getLanguage()){
+					//senses.add(obj.getLemmaWord());
+				//}
 				
 				// auxiliary list used to heap all incomplete classes which will found during the analysis
 				List<ClassifierObject> incompleteClassesAux = new ArrayList<>();
@@ -293,7 +311,7 @@ public class TC {
 				}
 				if(found) continue;
 				
-				// bloch dedicated to find a direct correspondence with a single term in the ontology
+				// block dedicated to find a direct correspondence with a single term in the ontology
 				for(String sense : senses){
 					if (!sense.contains("_")) {
 						List<OntClass> incomplete = new ArrayList<>();

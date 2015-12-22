@@ -63,7 +63,7 @@ public class LanguageDetection {
 			return Language.valueOf(detector.detect().toUpperCase());
 		} catch (LangDetectException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			//e.printStackTrace();
 		}
 		return null;
 	}

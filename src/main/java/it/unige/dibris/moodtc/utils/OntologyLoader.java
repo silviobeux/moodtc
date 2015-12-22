@@ -56,7 +56,8 @@ public class OntologyLoader {
 			}
 		}
 		this.filename = filename;
-		this.language = new LanguageDetection().detection(ont);
+		String ont1 = ont.replaceAll("([a-z])([A-Z])", "$1_$2").replace("_", " ");
+		this.language = new LanguageDetection().detection(ont1);
 	}
 
 	/**
