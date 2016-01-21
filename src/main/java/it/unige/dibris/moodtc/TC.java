@@ -11,11 +11,19 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.hp.hpl.jena.ontology.OntClass;
-import com.hp.hpl.jena.rdf.model.SimpleSelector;
+import com.hp.hpl.jena.query.Query;
+import com.hp.hpl.jena.query.QueryException;
+import com.hp.hpl.jena.query.QueryExecution;
+import com.hp.hpl.jena.query.QueryExecutionFactory;
+import com.hp.hpl.jena.query.QueryFactory;
+import com.hp.hpl.jena.query.QuerySolution;
+import com.hp.hpl.jena.query.ResultSet;
+import com.hp.hpl.jena.query.Syntax;
 import com.hp.hpl.jena.util.iterator.ExtendedIterator;
-import com.hp.hpl.jena.util.iterator.Filter;
 
 import it.unige.dibris.adm.ClassifierObject;
 import it.unige.dibris.adm.TCOutput;
@@ -38,7 +46,8 @@ public class TC {
 	// should be loaded from a configuration file
 	private Language supportedLanguages[] = new Language[] { Language.EN,
 			Language.IT, Language.ES, Language.FR, Language.DE };
-
+	private LanguageDetection detection = new LanguageDetection();
+	
 	public TC() {
 		
 	}
@@ -117,6 +126,60 @@ public class TC {
 		List<String> senses = new ArrayList<String>(
 				Arrays.asList(sense.split("_"))); // decompose sense in all its subterms
 		
+		Pattern p = Pattern.compile("[^a-z0-9 ]", Pattern.CASE_INSENSITIVE);
+
+		String queryString = //"PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> \n"+
+		        "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> \n"+
+				//"PREFIX owl: <http://www.w3.org/2002/07/owl#> \n" +
+		        //"PREFIX obo: <http://purl.obolibrary.org/obo/> \n" +
+				//"PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> \n" +
+		        //"PREFIX oboInOwl: <http://www.geneontology.org/formats/oboInOwl#> \n" +
+		        "select ?uri \n"+
+		        //"where { \n ?uri rdfs:label ?name . \n";
+		        "where { \n ?uri rdf:type ?x . \n";
+		for(String s : senses){
+			Matcher m = p.matcher(s);
+			if(!m.find())
+				queryString += "filter( regex(str(?uri), \"" + s + "\" ))\n";
+		}
+		queryString += "} \n ";
+		//System.out.println(queryString);
+		
+		Query query = QueryFactory.create(queryString, Syntax.syntaxSPARQL); 
+				
+		QueryExecution qe = QueryExecutionFactory.create(query, OntologyLoader.getOntModel());
+		ResultSet results = qe.execSelect();
+		//qe.close();
+		
+		while(results.hasNext()){
+			QuerySolution sol = results.nextSolution();
+			//String name = sol.getLiteral("name").getString();
+			String uri = sol.get("uri").toString();
+			int l_index = uri.length() - 1;
+			while(l_index >= 0 && 
+					(Character.isLetter(uri.charAt(l_index)) || 
+							uri.charAt(l_index) == '_' || 
+							uri.charAt(l_index) == ' ')) l_index--;
+			String name = uri.substring(l_index+1, uri.length());
+			
+			ArrayList<String> names = null;
+			if (name != null){
+		        name = name.replaceAll("([a-z])([A-Z])", "$1_$2").replace(" ", "_").toLowerCase(); // replace camelCase with underscore
+				names = new ArrayList<String>(
+						Arrays.asList(name.split("_")));
+			//}
+				if (names != null && names.containsAll(senses)) { // if the ontology class contains all the words contained in the sense
+					OntClass c = OntologyLoader.getOntModel().getOntClass(uri);
+					if(names.size() == senses.size()){ // and only that
+						return c;
+					}
+					else{ // otherwise is a spurious match
+						incomplete.add(c);
+					}
+				}
+			}
+		}
+		/*
 		ExtendedIterator<OntClass> it = OntologyLoader.getOntModel().listClasses();
 		while (it.hasNext()) { // for each class in the ontology
 			OntClass c = (OntClass) it.next();
@@ -135,7 +198,7 @@ public class TC {
 					incomplete.add(c);
 				}
 			}
-		}
+		}*/
 		return null;
 	}
 	
@@ -253,8 +316,11 @@ public class TC {
 					//senses.add(obj.getLemmaWord());
 				}
 				if(synsets == null || synsets.isEmpty()){
-					Language lemmaLanguage = new LanguageDetection().detection(obj.getLemmaWord());
-					if(lemmaLanguage != null) synsets = bn.getSynsets(lemmaLanguage, obj.getLemmaWord());
+					synchronized (detection) {
+						Language lemmaLanguage = detection.detection(obj.getLemmaWord());
+						if(lemmaLanguage != null) 
+							synsets = bn.getSynsets(lemmaLanguage, obj.getLemmaWord());
+					}
 				}
 				for (BabelSynset syn : synsets) {
 					for (BabelSense sen : syn.getSenses(ontLoader.getLanguage())) {
