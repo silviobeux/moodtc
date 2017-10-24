@@ -56,7 +56,7 @@ public class TreeTaggerUtils {
 					if(token.equals(".") || token.equals(";") || 
 							token.equals(":") || token.equals("?") ||
 							token.equals("!")){
-						tagObj.add(new TagObject(token, null, null));
+						tagObj.add(new TagObject(token, null, (POS)null));
 						return;
 					}
 					String val = correspondences.get(pos.toLowerCase());

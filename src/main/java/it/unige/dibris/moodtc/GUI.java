@@ -59,6 +59,7 @@ import it.unige.dibris.adm.ModuleOutput;
 import it.unige.dibris.adm.TCModule;
 import it.unige.dibris.adm.TCOutput;
 import it.unige.dibris.moodtc.utils.OntologyLoader;
+import it.uniroma1.lcl.babelnet.BabelNet;
 import it.uniroma1.lcl.jlt.util.Pair;
 
 public class GUI extends javax.swing.JFrame {
@@ -668,6 +669,10 @@ public class GUI extends javax.swing.JFrame {
 						outputTable.setModel(tableModel);
 						outputTable.setSelectionMode(0);
 						outlabel.setText(m.getResult());
+						beginButton.setEnabled(true);
+						progressBar.setIndeterminate(false);
+						progressBar.setVisible(false);
+						ClassModule.setEnabled(true);
 					} else {
 						// listModel = new
 						// MyOutputModel<ClassifierObject>(out.getInfo());
@@ -727,6 +732,7 @@ public class GUI extends javax.swing.JFrame {
 	 */
 	public static void main(String args[]) {
 		/* Create and display the form */
+		
 		java.awt.EventQueue.invokeLater(new Runnable() {
 			@Override
 			public void run() {

@@ -6,6 +6,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 
+import it.unige.dibris.adm.TCModule;
 import it.uniroma1.lcl.jlt.util.Language;
 
 public class TextLoader {
@@ -23,8 +24,18 @@ public class TextLoader {
 		this.language = new LanguageDetection().detection(this.text);
 	}
 	
+	public TextLoader(String text, TCModule module) {
+		this.text = module.preProcessing(text);
+		this.language = new LanguageDetection().detection(this.text);
+	}
+	
 	public TextLoader(File fileToRead) throws IOException{
 		this.load(fileToRead);
+	}
+	
+	public TextLoader(File fileToRead, TCModule module) throws IOException{
+		this.load(fileToRead);
+		text = module.preProcessing(text);
 	}
 
 	public void load(String text) {
